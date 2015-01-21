@@ -80,32 +80,37 @@ void DrawBoxes(Uint32* pixels, vector<AABB> boxes, Vector2d origin, Vector2d ori
 {
 	Vector2d newOrigin = origin;
 	//Uint32 WallColor = Color;
-	Vector2d newOrientation;
+	Vector2d rayOrientation;
 	Vector2d voffset = orientation;
 	voffset.rotate(3.1416 / 2);
 	for (int i = 0; i < windowWidth; i++)
 	{
 		//newOrigin = origin;
 
-		newOrientation = orientation;
+		rayOrientation = orientation;
 
 		float offset = -1 + i / float(windowWidth / 2);
 		
 		//offset *= 10;
-		//newOrigin = origin + voffset * offset*4;
+
+		newOrigin = origin + orientation;
+
+		newOrigin = newOrigin+ voffset * offset*0.5;
+
+		rayOrientation = newOrigin - origin;
 		//cout << voffset.x << "-voffset.x" << voffset.y << "-origin.y" << endl;
 		
 		//cout << newOrigin.x << "-origin.x" << newOrigin.y << "-origin.y" << endl;
-		newOrientation.rotate(offset*3.1416/4  );
+		//newOrientation.rotate(offset*3.1416/4  );
 
 		float mindist = 9999999;
 		//cout << "orientation x=" << orientation
 		for (auto box : boxes)
 		{
-			HitResult hit = lineIntersectionBox(newOrigin, newOrigin + newOrientation * 100, box);
+			HitResult hit = lineIntersectionBox(newOrigin, newOrigin + rayOrientation * 100, box);
 			if (hit.HitLocation.x != 0 || hit.HitLocation.y != 0)
 			{
-				float dist = VSize(hit.HitLocation - origin);
+				float dist = VSize(hit.HitLocation - newOrigin);
 				
 				if (dist < mindist)
 				{
