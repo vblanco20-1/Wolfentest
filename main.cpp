@@ -3,7 +3,7 @@
 #include <random>
 #include "MathUtils.h"
 #include "SDL_pixels.h"
-
+#include "Surface.h"
 #include<vector>
 
 using namespace std;
@@ -76,7 +76,7 @@ void drawColumn(Uint32 * pixels, Uint32 Color, int column, float Height)
 	drawColumn(pixels, Color, column, top, bot);
 }
 
-void DrawBoxes(Uint32* pixels, vector<AABB> boxes, Vector2d origin, Vector2d orientation, Uint32 Color)
+void DrawBoxes(Surface*Screen, vector<AABB> boxes, Vector2d origin, Vector2d orientation, Uint32 Color)
 {
 	Vector2d newOrigin = origin;
 	//Uint32 WallColor = Color;
@@ -119,27 +119,36 @@ void DrawBoxes(Uint32* pixels, vector<AABB> boxes, Vector2d origin, Vector2d ori
 			}
 
 		}
-		Uint32 WallColor = SDL_MapRGBA(pxformat, (0.5 / mindist) * 250, (0.5 / mindist) * 250, (0.5 / mindist) * 250, 255);
-		drawColumn(pixels, WallColor, i, 0.5 / mindist);
+		//Uint32 WallColor = SDL_MapRGBA(pxformat, (0.5 / mindist) * 250, (0.5 / mindist) * 250, (0.5 / mindist) * 250, 255);
+		SDL_Color WallColor;
+		WallColor.r = (0.5 / mindist) * 250;
+		WallColor.g = (0.5 / mindist) * 250;
+		WallColor.b = (0.5 / mindist) * 250;
+		WallColor.a = 255;
+		Screen->DrawColumn(WallColor, i, 0.5 / mindist);
 		//cout << mindist << "-dist" << endl;
 
 	}
 }
 
-void updateTexture(Uint32 * pixels, SDL_PixelFormat* format)
+void updateTexture(Surface * Screen)
 {
 
-	Uint32 FloorColor = SDL_MapRGBA(format, 150, 150, 150, 255);
-	Uint32 CeilingColor = SDL_MapRGBA(format, 0, 0, 0, 255);
+	SDL_Color CeilingColor;
+	CeilingColor.r = 255;
+	CeilingColor.g = 0;
+	CeilingColor.b = 0;
+	CeilingColor.a = 255;
+	SDL_Color FloorColor;
+	FloorColor.r = 0;
+	FloorColor.g = 0;
+	FloorColor.b = 150;
+	FloorColor.a = 255;
 
 
-	drawFloorAndCeiling(pixels, 0.5, CeilingColor, FloorColor);
+	Screen->DrawRectangle(FloorColor, 0, Screen->GetHeight() / 2, 0, Screen->GetWidth() - 1);
+	Screen->DrawRectangle(CeilingColor, Screen->GetHeight() / 2, Screen->GetHeight() - 1, 0, Screen->GetWidth() - 1);
 
-	/*Uint32 WallColor = SDL_MapRGBA(format, 255, 150, 150, 255);
-	for (int i = 0; i < windowWidth; i++)
-	{
-	drawColumn(pixels, WallColor, i,0.5);
-	}*/
 }
 
 
@@ -153,13 +162,20 @@ int main(int argc, char ** argv)
 	SDL_Window * window = SDL_CreateWindow("SDL2 Pixel Drawing",
 		SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth, windowHeight, 0);
 
-	SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
-	SDL_Texture * texture = SDL_CreateTexture(renderer,
-		SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, windowWidth, windowHeight);
+	
 
-	Uint32 * pixels = new Uint32[windowWidth * windowHeight];
-	SDL_PixelFormat * format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
-	pxformat = format;
+	SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
+
+	//SDL_Texture * texture = SDL_CreateTexture(renderer,
+	//	SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, windowWidth, windowHeight);
+
+	//Uint32 * pixels = new Uint32[windowWidth * windowHeight];
+	//SDL_PixelFormat * format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+	//pxformat = format;
+
+	Surface Screen;
+	Screen.CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, windowWidth, windowHeight);
+
 	Viewpoint view;
 	view.orientation = Vector2d(1, 0);
 	view.origin = Vector2d(0, 0);
@@ -197,11 +213,14 @@ int main(int argc, char ** argv)
 	while (!quit)
 	{
 
-		updateTexture(pixels, format);
-		Uint32 WallColor = SDL_MapRGBA(format, 255, 150, 150, 255);
-		DrawBoxes(pixels, boxes,view.origin, view.orientation, WallColor);
+		updateTexture(&Screen);
+
+		//Uint32 WallColor = SDL_MapRGBA(format, 255, 150, 150, 255);
+		DrawBoxes(&Screen, boxes,view.origin, view.orientation, 0);
 		cout << "char is at" << view.origin.x << "x - " << view.origin.y << " y " << endl;
-		SDL_UpdateTexture(texture, NULL, pixels, windowWidth * sizeof(Uint32));
+
+		Screen.UpdateTexture();
+		//SDL_UpdateTexture(texture, NULL, pixels, windowWidth * sizeof(Uint32));
 		while (SDL_PollEvent(&event)) {
 
 			switch (event.type)
@@ -237,16 +256,17 @@ int main(int argc, char ** argv)
 			}
 		}
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, texture, NULL, NULL);
+		SDL_RenderCopy(renderer, Screen.GetTexture(), NULL, NULL);
 		SDL_RenderPresent(renderer);
 
 	}
 
 	
 	//delete format;
-	SDL_DestroyTexture(texture);
-	SDL_DestroyRenderer(renderer);
+	//SDL_DestroyTexture(texture);
 	SDL_DestroyWindow(window);
+	SDL_DestroyRenderer(renderer);
+	
 	//delete[] pixels;
 	SDL_Quit();
 
